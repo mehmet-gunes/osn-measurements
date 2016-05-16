@@ -34,14 +34,12 @@ public class DropboxClientUsage extends CloudProvider
             this.context = context;
          }
 
-      final static private String APP_KEY = "btt1coh7iijfczm";
-      final static private String APP_SECRET = "tifgdmddm7g0hqd";
-
       @Override
       public void initializeCloud()
          {
             // create the application key token
-            AppKeyPair appKeyToken = new AppKeyPair(APP_KEY, APP_SECRET);
+            AppKeyPair appKeyToken = new AppKeyPair("ondtd59h2ov1yzc", "mb4parq99j2pqk6");
+            AndroidAuthSession session = new AndroidAuthSession(appKeyToken);
 
             // try to get the session token from the shared preferences
             String sessionToken = getDropboxToken();
@@ -50,60 +48,54 @@ public class DropboxClientUsage extends CloudProvider
             if (sessionToken == null)
                {
                   // if no token, then have the user sign in
-                  dropboxSession = new DropboxAPI<>(new AndroidAuthSession(appKeyToken));
+                  dropboxSession = new DropboxAPI<>(session);
                   dropboxSession.getSession().startOAuth2Authentication(context);
                }
             else
                {
                   // session token already available
                   dropboxSession = new DropboxAPI<>(new AndroidAuthSession(appKeyToken, sessionToken));
-
-                  // authenticate Dropbox login
-                  authenticateDropboxLogin();
-
+                  showToast("Dropbox Connected!");
+                  authenticated = true;
+                  isConnected = true;
                }
          }
 
       @Override
       public void onResume()
          {
-            if(!authenticated)
+            if (!authenticated)
                {
                   authenticateDropboxLogin();
-
                }
          }
 
 
       private void authenticateDropboxLogin()
          {
-            // check if the dropbox session has been created
-            if (dropboxSession != null)
+            // check if the authentication was successful
+            if (dropboxSession.getSession().authenticationSuccessful())
                {
-                  // check if the authentication was successful
-                  if (dropboxSession.getSession().authenticationSuccessful())
+                  // finish the authentication
+                  try
                      {
-                        // finish the authentication
                         dropboxSession.getSession().finishAuthentication();
-
-                        //saveDropboxToken(dropboxSession.getSession().getAccessTokenPair());
                         saveDropboxToken(dropboxSession.getSession().getOAuth2AccessToken());
+
                         System.out.println("TOKEN SAVED!!!!");
 
                         showToast("Dropbox Connected!");
                         authenticated = true;
                         isConnected = true;
                      }
-                  else
+                  catch (IllegalStateException e)
                      {
-                        System.out.println("WOOPS2");
-
+                        showToast("Couldn't authenticate with Dropbox:" + e.getLocalizedMessage());
+                        Log.i("Dropbox", "Error authenticating", e);
                      }
+
                }
-            else
-               {
-                  System.out.println("WOOPS1");
-               }
+
          }
 
       private void showToast(String message)
@@ -115,39 +107,39 @@ public class DropboxClientUsage extends CloudProvider
       public void createStorageDirectoriesOnCloudAsyncTask()
          {
             new AsyncTask<Void, Void, Void>()
-            {
-               protected Void doInBackground(Void... params)
-                  {
-                     createStorageDirectoriesOnCloud();
-                     return null;
-                  }
-            }.execute();
+               {
+                  protected Void doInBackground(Void... params)
+                     {
+                        createStorageDirectoriesOnCloud();
+                        return null;
+                     }
+               }.execute();
          }
 
       @Override
       public void downloadFileFromCloudAsyncTask(final String folderName, final String fileName, final String devicePath)
          {
             new AsyncTask<Void, Void, Void>()
-            {
-               protected Void doInBackground(Void... params)
-                  {
-                     downloadFileFromCloud(folderName, fileName, devicePath);
-                     return null;
-                  }
-            }.execute();
+               {
+                  protected Void doInBackground(Void... params)
+                     {
+                        downloadFileFromCloud(folderName, fileName, devicePath);
+                        return null;
+                     }
+               }.execute();
          }
 
       @Override
       public void uploadFileToCloudAsyncTask(final String folderName, final String fileName, final String devicePath)
          {
             new AsyncTask<Void, Void, Void>()
-            {
-               protected Void doInBackground(Void... params)
-                  {
-                     uploadFileToCloud(folderName, fileName, devicePath);
-                     return null;
-                  }
-            }.execute();
+               {
+                  protected Void doInBackground(Void... params)
+                     {
+                        uploadFileToCloud(folderName, fileName, devicePath);
+                        return null;
+                     }
+               }.execute();
          }
 
       // check to see if the token has already been obtained
@@ -155,14 +147,25 @@ public class DropboxClientUsage extends CloudProvider
       private String getDropboxToken()
          {
             // get the shared preferences area for the token
-            SharedPreferences sessionTokenRecord = context.getSharedPreferences("comment_propagation", Context.MODE_PRIVATE);
+            SharedPreferences sessionTokenRecord = context.getSharedPreferences("token2", Context.MODE_PRIVATE);
 
             // get the token key
-            String sessionToken = sessionTokenRecord.getString("accessToken", null);
+            String sessionToken = sessionTokenRecord.getString("accessToken2", null);
 
+            //	String sessionKey = sessionTokenRecord.getString("sessionKey", null);
+
+            // get the token secret
+            //String sessionSecret = sessionTokenRecord.getString("sessionSecret", null);
+
+            // check if the token key and secret were retrieved successfully
+            //if (!(sessionKey == null || sessionSecret == null))
             if (!(sessionToken == null))
                {
                   System.out.println("TOKEN FOUND!");
+                  System.out.println(sessionToken);
+
+                  // return the access token pair
+                  //return new AccessTokenPair(sessionKey, sessionSecret);
                   return sessionToken;
                }
             else
@@ -180,12 +183,20 @@ public class DropboxClientUsage extends CloudProvider
       private void saveDropboxToken(String accessToken)
          {
             // create a new shared preferences area for the token
-            SharedPreferences.Editor tokenRecordEditor = context.getSharedPreferences("comment_propagation", Context.MODE_PRIVATE).edit();
+            SharedPreferences.Editor tokenRecordEditor = context.getSharedPreferences("token2", Context.MODE_PRIVATE).edit();
 
-            tokenRecordEditor.putString("accessToken", accessToken);
+            tokenRecordEditor.putString("accessToken2", accessToken);
+
+
+            // put the token key
+            //tokenRecordEditor.putString("sessionKey", accessToken.key);
+
+            // put the token secret
+            //tokenRecordEditor.putString("sessionSecret", accessToken.secret);
 
             // write the preferences to the device
-            tokenRecordEditor.apply();
+            //tokenRecordEditor.commit();
+            tokenRecordEditor.commit();
          }
 
       @Override
@@ -197,16 +208,13 @@ public class DropboxClientUsage extends CloudProvider
       @Override
       public void createStorageDirectoriesOnCloud()
          {
-            for(int i = 0; i < Constants.NUM_DIRECTORIES; i++)
+            for (int i = 0; i < Constants.NUM_DIRECTORIES; i++)
                {
                   // check if a direct exists, if it does not then exception will be thrown
                   try
                      {
-                        System.out.println("Creating!");
                         // attempt to create dropbox folder
                         dropboxSession.createFolder(Constants.directoryNames[i]);
-                        System.out.println("Created!");
-
                      }
                   catch (DropboxException e)
                      {
@@ -288,7 +296,7 @@ public class DropboxClientUsage extends CloudProvider
                         response = dropboxSession.putFileOverwrite(dropboxPath, inputStream, file.length(), null);
 
                         // check if the upload was successful
-                        if(response != null)
+                        if (response != null)
                            {
                               // share the file to the public
                               DropboxAPI.DropboxLink link = dropboxSession.share(dropboxPath);
@@ -305,7 +313,7 @@ public class DropboxClientUsage extends CloudProvider
                               String test = ucon.getHeaderField("Location");
 
                               // replace end 0 with a 1 to make it become a direct link
-                              directLink = test.substring(0,test.length()-1) + "1";
+                              directLink = test.substring(0, test.length() - 1) + "1";
 
 
                               Log.i("Dropbox Upload", "Upload Complete");
@@ -314,7 +322,7 @@ public class DropboxClientUsage extends CloudProvider
                         else
                            {
                               Log.i("Dropbox Upload", "Upload Failed");
-                              tries --;
+                              tries--;
                            }
 
                         // close the stream

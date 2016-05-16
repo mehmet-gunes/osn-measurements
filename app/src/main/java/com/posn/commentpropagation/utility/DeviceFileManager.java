@@ -1,4 +1,4 @@
-package com.posn.commentpropagation.clouds.utility;
+package com.posn.commentpropagation.utility;
 
 
 import android.util.Log;
