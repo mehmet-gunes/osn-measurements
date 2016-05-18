@@ -1,18 +1,47 @@
 package com.posn.commentpropagation.utility;
 
 
+import android.content.Context;
+
 import com.posn.commentpropagation.Constants;
+import com.posn.commentpropagation.R;
 import com.posn.commentpropagation.datatypes.Comment;
 import com.posn.commentpropagation.datatypes.WallPost;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.Scanner;
 
 public class TestValueGenerator
    {
-      public static WallPost generateRandomWallPost(int numComments)
+      private final int NUM_COMMENT_CHAR_VALUES = 10000;
+
+      private int[] numCommentsArray;
+      private int[] numCommentCharsArray;
+
+      private int postIndex = 0;
+
+      private Context context;
+      private Random rand = new Random();
+
+
+      public TestValueGenerator(Context context, int numTests)
          {
-            Random rand = new Random();
+            this.context = context;
+
+            // read the number of comments data from the file
+            numCommentsArray = new int[numTests];
+            readDataValuesFromFile(R.raw.data_num_comments_limited, numCommentsArray, numTests);
+
+            // read the number of comment chars from the file
+            numCommentCharsArray = new int[NUM_COMMENT_CHAR_VALUES];
+            readDataValuesFromFile( R.raw.data_num_chars, numCommentCharsArray, NUM_COMMENT_CHAR_VALUES);
+         }
+
+      public WallPost generateRandomWallPost()
+         {
             WallPost post;
 
             int postType = rand.nextInt() % 2;
@@ -34,22 +63,22 @@ public class TestValueGenerator
                }
 
             // generate random comments for the wall post
-            post.comments = TestValueGenerator.generateComments(post.postID, post.friendID, numComments);
+            int numComments = numCommentsArray[postIndex];
+            post.comments = generateComments(post.postID, post.friendID, numComments);
+            postIndex ++;
 
             return post;
          }
 
-      public static ArrayList<Comment> generateComments(String postID, String userID, int numComments)
+      public ArrayList<Comment> generateComments(String postID, String userID, int numComments)
          {
             ArrayList<Comment> comments = new ArrayList<>();
 
             // generate a random number of comments
-            // int numComments = generateNumberOfComments();
-System.out.println("NUM COMMENTS!!!!!!!!!!!!!!!!!!!!!!!: " + numComments);
             for (int i = 0; i < numComments; i++)
                {
                   // generate a random comment string
-                  int numCommentChars = generateCommentLength();
+                  int numCommentChars = numCommentCharsArray[rand.nextInt(NUM_COMMENT_CHAR_VALUES)];
                   String commentString = generateRandomString(numCommentChars);
 
                   comments.add(new Comment(postID, userID, commentString));
@@ -58,35 +87,8 @@ System.out.println("NUM COMMENTS!!!!!!!!!!!!!!!!!!!!!!!: " + numComments);
             return comments;
          }
 
-      private static int generateNumberOfComments()
-         {
-            Random random = new Random();
 
-            // generate a random value between 0 and 100
-            int propability = random.nextInt(101);
-
-            // check if if less than 2
-            if (propability < 1)
-               {
-                  // create a large amount of comments
-                  return random.nextInt((600 - 30) + 1) + 30;
-               }
-            else
-               {
-                  if (propability < 50)
-                     {
-                        // create a number of comments less than the average
-                        return random.nextInt((30 - 10) + 1) + 10;
-                     }
-                  else
-                     {
-                        // create a number of comments greater than the average
-                        return random.nextInt((10 + 1));
-                     }
-               }
-         }
-
-      private static String generateRandomString(int numChars)
+      private String generateRandomString(int numChars)
          {
             Random generator = new Random();
             StringBuilder randomStringBuilder = new StringBuilder();
@@ -100,31 +102,27 @@ System.out.println("NUM COMMENTS!!!!!!!!!!!!!!!!!!!!!!!: " + numComments);
             return randomStringBuilder.toString();
          }
 
-      private static int generateCommentLength()
+
+
+      private void readDataValuesFromFile(int res_id, int [] array, int numElements)
          {
-            Random random = new Random();
+            InputStream is = context.getResources().openRawResource(res_id);
+            Scanner scanner = new Scanner(is);
 
-            // generate a random value between 0 and 100
-            int propability = random.nextInt(101);
+            try
+               {
+                  for (int i = 0; i < numElements; i++)
+                     {
+                        int value = scanner.nextInt();
+                        array[i] = value;
+                     }
 
-            // check if if less than 2
-            if (propability < 2)
-               {
-                  // create a large amount of comments
-                  return random.nextInt((1000 - 200) + 1) + 200;
+                  is.close();
                }
-            else
+            catch (IOException e)
                {
-                  if (propability < 50)
-                     {
-                        // create a number of comments less than the average
-                        return random.nextInt((200 - 50) + 1) + 50;
-                     }
-                  else
-                     {
-                        // create a number of comments greater than the average
-                        return random.nextInt((50 + 1));
-                     }
+                  e.printStackTrace();
                }
+
          }
    }

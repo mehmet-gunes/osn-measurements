@@ -1,7 +1,6 @@
 package com.posn.commentpropagation;
 
 import android.app.ProgressDialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.os.AsyncTask;
 
@@ -16,10 +15,7 @@ import com.posn.commentpropagation.utility.TestValueGenerator;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Random;
-import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -30,14 +26,14 @@ public class MeasurementTestsAsyncTask extends AsyncTask<String, String, String>
       private ProgressDialog pDialog;
       private MainActivity main;
       private CloudProvider cloud;
+      private TestValueGenerator testValueGenerator;
+      private FileWriter writer;
 
       private int testNum = 1;
       private int numTests;
 
-      private FileWriter writer;
 
       private ArrayList<WallPost> wallPosts = new ArrayList<>();
-      private int[] numCommentsArray;
 
       String resultString;
 
@@ -49,7 +45,7 @@ public class MeasurementTestsAsyncTask extends AsyncTask<String, String, String>
             main = activity;
             cloud = main.cloud;
             numTests = main.numberOfTests;
-            numCommentsArray = new int[numTests];
+            testValueGenerator = new TestValueGenerator(main, numTests);
          }
 
 
@@ -81,12 +77,9 @@ public class MeasurementTestsAsyncTask extends AsyncTask<String, String, String>
             // create random encryption key
             String encryptionKey = SymmetricKeyManager.createRandomKey();
 
-            // read the number of comments data from the file
-            readNumberOfCommentsFromFile(main, R.raw.data_num_comments);
 
             WallPost post;
 
-            int numComments;
             String embeddedCommentsWallLink, commentFileWallLink;
 
             try
@@ -103,8 +96,7 @@ public class MeasurementTestsAsyncTask extends AsyncTask<String, String, String>
                         publishProgress("Testing");
 
                         // generate a random wall post and add it to the list
-                        numComments = numCommentsArray[i];
-                        post = TestValueGenerator.generateRandomWallPost(numComments);
+                        post = testValueGenerator.generateRandomWallPost();
                         wallPosts.add(post);
 
                         // measure the upload performance of group wall with embedded comments
@@ -158,37 +150,8 @@ public class MeasurementTestsAsyncTask extends AsyncTask<String, String, String>
          }
 
 
-      private void readNumberOfCommentsFromFile(Context ctx, int res_id)
-         {
-            InputStream is = ctx.getResources().openRawResource(res_id);
-            Scanner scanner = new Scanner(is);
-            Random rand = new Random();
 
-            try
-               {
-                  for (int i = 0; i < numTests; i++)
-                     {
-                        int value = scanner.nextInt();
 
-                        if (value > 30)
-                           {
-
-                              numCommentsArray[i] = rand.nextInt(21);
-                           }
-                        else
-                           {
-                              numCommentsArray[i] = value;
-                           }
-                     }
-
-                  is.close();
-               }
-            catch (IOException e)
-               {
-                  e.printStackTrace();
-               }
-
-         }
 
 
       private String uploadAndMeasureWallWithEmbeddedComments(String encryptionKey, WallPost post) throws IOException
@@ -257,7 +220,9 @@ public class MeasurementTestsAsyncTask extends AsyncTask<String, String, String>
             // create and upload comment file
             CloudFileManager.createCommentFile(post.multimediaKey, post.comments, Constants.testFilePath, "comment_file.txt");
             long tStart = System.currentTimeMillis();
+
             post.commentFileLink = cloud.uploadFileToCloud(Constants.cloudDirectory, "comment_file_" + commentFileNum + ".txt", Constants.testFilePath + "/comment_file.txt");
+
             wallPosts.remove(wallPosts.size() - 1);
             wallPosts.add(post);
 
@@ -288,14 +253,14 @@ public class MeasurementTestsAsyncTask extends AsyncTask<String, String, String>
                   threadPool.submit(createDownloadRunnable(post));
                }
 
-            // shutdown the threadpool so no
+            // shutdown the threadpool so no more tasks can be added
             threadPool.shutdown();
+
             // wait for the threads to finish if necessary
             threadPool.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
 
             // write the results to the file
             // writer.append("Download, Links, " + linkFileSize + " bytes, " + linkGroupFileTime + " sec\n");
-            System.out.println(linkGroupFileTime + " | " + commentFileTime.get());
             linkGroupFileTime += commentFileTime.get();
             writer.append("Download, Links, " + linkGroupFileTime + " sec\n");
 
@@ -304,7 +269,7 @@ public class MeasurementTestsAsyncTask extends AsyncTask<String, String, String>
 
       private Runnable createDownloadRunnable(final WallPost post)
          {
-            Runnable aRunnable = new Runnable()
+            return new Runnable()
                {
                   public void run()
                      {
@@ -321,8 +286,5 @@ public class MeasurementTestsAsyncTask extends AsyncTask<String, String, String>
                         commentFileTime.addAndGet((tEnd - tStart) / 1000.0);
                      }
                };
-
-            return aRunnable;
-
          }
    }
