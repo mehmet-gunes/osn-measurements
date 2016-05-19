@@ -16,13 +16,8 @@ import com.posn.commentpropagation.utility.DeviceFileManager;
 public class MainActivity extends AppCompatActivity implements View.OnClickListener
    {
       // interface variables
-      private Button connectDropboxButton;
-      private Button startTestsButton;
       private TextView dropboxStatusText;
-      private TextView testStatusText;
       private EditText numTestsText;
-
-      private MeasurementTestsAsyncTask asyncTask = null;
 
       public CloudProvider cloud = null;
       public int numberOfTests;
@@ -35,14 +30,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             setContentView(R.layout.activity_main);
 
             // get buttons from the interface
-            connectDropboxButton = (Button) findViewById(R.id.connect_button);
-            startTestsButton = (Button) findViewById(R.id.start_tests_button);
-            connectDropboxButton.setOnClickListener(this);
-            startTestsButton.setOnClickListener(this);
+            Button connectDropboxButton = (Button) findViewById(R.id.connect_button);
+            Button startTestsButton = (Button) findViewById(R.id.start_tests_button);
+
+            // set the button onClickListener
+            if(connectDropboxButton != null && startTestsButton != null)
+               {
+                  connectDropboxButton.setOnClickListener(this);
+                  startTestsButton.setOnClickListener(this);
+               }
 
             // get textviews from the interface
             dropboxStatusText = (TextView) findViewById(R.id.dropbox_status_text);
-            testStatusText = (TextView) findViewById(R.id.test_status_text);
 
             // get edittext from the interface
             numTestsText = (EditText) findViewById(R.id.num_tests_text);
@@ -99,8 +98,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                  numberOfTests = Integer.parseInt(numTestsText.getText().toString());
 
                                  // create an async task to perform the measurements
-                                 asyncTask = new MeasurementTestsAsyncTask(this);
-                                 asyncTask.execute();
+                                 new MeasurementTestsAsyncTask(this).execute();
                               }
                            else
                               {

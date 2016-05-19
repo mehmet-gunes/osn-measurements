@@ -3,9 +3,6 @@ package com.posn.commentpropagation.utility;
 
 import android.util.Log;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -20,22 +17,6 @@ import java.net.URL;
 
 public class DeviceFileManager
    {
-      public static JSONObject loadJSONObjectFromFile(String devicePath)
-         {
-            String data = loadStringFromFile(devicePath);
-            JSONObject object = null;
-
-            try
-               {
-                  object = new JSONObject(data);
-               }
-            catch (JSONException e)
-               {
-                  e.printStackTrace();
-               }
-            return object;
-         }
-
       public static String loadStringFromFile(String filename)
          {
             String line, fileContents = null;
@@ -59,11 +40,6 @@ public class DeviceFileManager
                }
 
             return fileContents;
-         }
-
-      public static void writeJSONToFile(JSONObject data, String devicePath)
-         {
-            writeStringToFile(data.toString(), devicePath);
          }
 
       public static void writeStringToFile(String data, String devicePath)
@@ -93,8 +69,7 @@ public class DeviceFileManager
                   connection = (HttpURLConnection) url.openConnection();
                   connection.connect();
 
-                  // expect HTTP 200 OK, so we don't mistakenly save error report
-                  // instead of the file
+                  // expect HTTP 200 OK, so we don't mistakenly save error report instead of the file
                   if (connection.getResponseCode() != HttpURLConnection.HTTP_OK)
                      {
                         System.out.println("Server returned HTTP " + connection.getResponseCode() + " " + connection.getResponseMessage());
@@ -106,11 +81,9 @@ public class DeviceFileManager
                   output = new FileOutputStream(filePath + "/" + fileName);
 
                   byte data[] = new byte[4096];
-                  long total = 0;
                   int count;
                   while ((count = input.read(data)) != -1)
                      {
-                        total += count;
                         output.write(data, 0, count);
                      }
                }
