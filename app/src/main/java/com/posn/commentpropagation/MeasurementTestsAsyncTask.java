@@ -3,6 +3,7 @@ package com.posn.commentpropagation;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.os.AsyncTask;
+import android.util.Log;
 
 import com.google.common.util.concurrent.AtomicDouble;
 import com.posn.commentpropagation.clouds.CloudProvider;
@@ -47,9 +48,6 @@ public class MeasurementTestsAsyncTask extends AsyncTask<String, String, String>
             main = activity;
             cloud = main.cloud;
             numTests = main.numberOfTests;
-
-            // create a new test value generator to generate new posts
-            testValueGenerator = new TestValueGenerator(main, numTests);
          }
 
 
@@ -84,6 +82,9 @@ public class MeasurementTestsAsyncTask extends AsyncTask<String, String, String>
             // create cloud storage directories
             cloud.createStorageDirectoriesOnCloud();
 
+            // create a new test value generator to generate new posts
+            testValueGenerator = new TestValueGenerator(main, numTests);
+
             // create random encryption key
             String encryptionKey = SymmetricKeyManager.createRandomKey();
 
@@ -105,6 +106,7 @@ public class MeasurementTestsAsyncTask extends AsyncTask<String, String, String>
 
                         // generate a random wall post and add it to the list
                         post = testValueGenerator.generateRandomWallPost();
+                        System.out.println("NUM COMMENTS!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " + post.comments.size());
                         wallPosts.add(post);
 
                         // measure the upload performance of group wall with embedded comments
@@ -140,6 +142,10 @@ public class MeasurementTestsAsyncTask extends AsyncTask<String, String, String>
                {
                   e.printStackTrace();
                }
+            catch (Exception e)
+               {
+                  Log.e("Error", "", e);
+               }
             return null;
          }
 
@@ -156,7 +162,6 @@ public class MeasurementTestsAsyncTask extends AsyncTask<String, String, String>
          {
             pDialog.setMessage("Measuring Test: " + testNum + " of " + numTests);
          }
-
 
 
       private String uploadAndMeasureWallWithEmbeddedComments(String encryptionKey, WallPost post) throws IOException
@@ -243,12 +248,14 @@ public class MeasurementTestsAsyncTask extends AsyncTask<String, String, String>
 
             // set the automic double to 0
             commentFileTime.set(0.0);
+            int counter = 0;
 
             // loop through and fetch all comment files and measure time and file sizes
             for (WallPost post : wallPosts)
                {
                   // add the new url to the download queue
-                  threadPool.submit(createDownloadRunnable(post));
+                  threadPool.submit(createDownloadRunnable(post, counter%10));
+                  counter++;
                }
 
             // shutdown the threadpool so no more tasks can be added
@@ -262,7 +269,7 @@ public class MeasurementTestsAsyncTask extends AsyncTask<String, String, String>
             writer.append("Download, Links, " + linkGroupFileTime + " sec\n");
          }
 
-      private Runnable createDownloadRunnable(final WallPost post)
+      private Runnable createDownloadRunnable(final WallPost post, final int num)
          {
             return new Runnable()
                {
@@ -272,7 +279,7 @@ public class MeasurementTestsAsyncTask extends AsyncTask<String, String, String>
                         double tStart = System.currentTimeMillis();
 
                         // download the file
-                        DeviceFileManager.downloadFileFromURL(post.commentFileLink, Constants.testFilePath, "comment_file.txt");
+                        DeviceFileManager.downloadFileFromURL(post.commentFileLink, Constants.testFilePath, "comment_file" + Integer.toString(num) + ".txt");
 
                         // get the ending time
                         double tEnd = System.currentTimeMillis();
